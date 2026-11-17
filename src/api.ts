@@ -2,7 +2,8 @@ import { invoke } from "@tauri-apps/api/core";
 
 export interface PortEntry {
   protocol: "TCP" | "UDP";
-  localAddr: string;
+  /** All addresses the port is bound on (IPv4 + IPv6 merged). */
+  localAddrs: string[];
   port: number;
   state: string;
   remoteAddr: string | null;
@@ -13,6 +14,8 @@ export interface PortEntry {
   command: string | null;
   memory: number | null;
   cpuUsage: number | null;
+  /** OS service or another user's process; cannot be killed from the app. */
+  isSystem: boolean;
 }
 
 export interface KillResult {

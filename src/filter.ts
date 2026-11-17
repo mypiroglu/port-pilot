@@ -25,7 +25,7 @@ export function matchesQuery(entry: PortEntry, query: string): boolean {
       entry.port,
       entry.pid ?? "",
       entry.processName ?? "",
-      entry.localAddr,
+      ...entry.localAddrs,
       entry.remoteAddr ?? "",
       entry.state,
       entry.command ?? "",
@@ -76,4 +76,22 @@ export function formatBytes(bytes: number | null): string {
 
 /** Stable key for a row; a port can be bound by several processes. */
 export const rowKey = (e: PortEntry) =>
-  `${e.protocol}|${e.localAddr}|${e.port}|${e.state}|${e.remoteAddr}|${e.remotePort}|${e.pid}`;
+  `${e.protocol}|${e.port}|${e.state}|${e.remoteAddr}|${e.remotePort}|${e.pid}`;
+
+/** Returns the port number if the query is exactly ":<port>", otherwise null. */
+export function exactPortQuery(query: string): number | null {
+  const m = query.trim().match(/^:(\d{1,5})$/);
+  if (!m) return null;
+  const port = Number(m[1]);
+  return port > 0 && port <= 65535 ? port : null;
+}
+
+/** Entries that actually occupy a port (TCP LISTEN or bound UDP). */
+export const occupiers = (entries: PortEntry[], port: number) =>
+  entries.filter((e) => e.port === port && (e.state === "LISTEN" || e.protocol === "UDP"));
+
+/** Well-known OS services that grab common development ports. */
+export const PORT_HINTS: Record<number, string> = {
+  5000: "On macOS, AirPlay Receiver (ControlCenter) uses ports 5000 and 7000. Turn it off in System Settings → General → AirDrop & Handoff.",
+  7000: "On macOS, AirPlay Receiver (ControlCenter) uses ports 5000 and 7000. Turn it off in System Settings → General → AirDrop & Handoff.",
+};

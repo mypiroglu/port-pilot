@@ -12,7 +12,10 @@ No more `lsof -i :3000 | grep LISTEN` → copy PID → `kill -9`.
 - 📋 Lists every open TCP/UDP port with its owning process, PID, memory and CPU usage
 - 🔎 Instant search: process name, PID, address or command line
   - `:3000` matches an exact port, `:8000-8999` matches a range, multiple terms are AND-ed
+- ✅ **Is this port free?** Type `:3000` to get an instant answer, and free it with one click
 - 🛑 Graceful **Kill** (SIGTERM) or **Force** (SIGKILL) with an inline two-step confirm
+- 🔒 System services (e.g. `ControlCenter`, `rapportd`) are marked and protected from being killed
+- 🧹 Clean list: IPv4/IPv6 bindings of the same port are merged into one row
 - 🔁 Auto refresh (1/2/5/10 s), paused while the window is hidden
 - 📂 Reveal a process's executable in Finder / Explorer
 - ↕️ Sortable columns, TCP/UDP filter, "listening only" toggle
@@ -60,15 +63,16 @@ src-tauri/
 
 ## Permissions & limitations
 
-- Processes owned by other users or by the system (e.g. `mDNSResponder`, `launchd`) are shown without
-  process details and **can't be killed** unless PortPilot runs with elevated privileges.
+- Processes owned by other users, or whose executable lives in an OS directory (`/System`, `/usr/libexec`,
+  `C:\Windows`, …), are flagged as **system** and can't be killed from PortPilot.
 - PID 0/1 and PortPilot itself are protected from being killed.
+- On macOS, ports 5000 and 7000 are used by the AirPlay Receiver. PortPilot shows how to turn it off.
 - On Windows there is no SIGTERM; both Kill and Force terminate the process immediately.
 
 ## Roadmap
 
 - [ ] Menu bar / system tray mode with a global shortcut
-- [ ] "Free port N" quick action
+- [x] "Free port N" quick action
 - [ ] Favourite / pinned ports (e.g. 3000, 5173, 8080)
 - [ ] Notifications when a watched port opens or closes
 - [ ] Show established connections per process

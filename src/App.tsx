@@ -2,8 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { killProcess, listPorts, type PortEntry } from "./api";
 import {
+  exactPortQuery,
   filterAndSort,
   formatBytes,
+  occupiers,
+  PORT_HINTS,
   rowKey,
   type ProtocolFilter,
   type SortDir,
@@ -24,8 +27,9 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [protocol, setProtocol] = useState<ProtocolFilter>("ALL");
+  const [protocol, setProtocol] = useState<ProtocolFilter>("TCP");
   const [listeningOnly, setListeningOnly] = useState(true);
+  const [showSystem, setShowSystem] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [intervalSec, setIntervalSec] = useState(2);
   const [sortKey, setSortKey] = useState<SortKey>("port");
@@ -87,9 +91,18 @@ function App() {
   }, [refresh]);
 
   const visible = useMemo(
-    () => filterAndSort(entries, query, protocol, sortKey, sortDir),
-    [entries, query, protocol, sortKey, sortDir],
+    () =>
+      filterAndSort(
+        showSystem ? entries : entries.filter((e) => !e.isSystem),
+        query,
+        protocol,
+        sortKey,
+        sortDir,
+      ),
+    [entries, query, protocol, sortKey, sortDir, showSystem],
   );
+
+  const checkedPort = exactPortQuery(query);
 
   const onSort = (key: SortKey) => {
     if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -100,7 +113,7 @@ function App() {
   };
 
   const onKill = async (entry: PortEntry, force: boolean) => {
-    if (entry.pid == null) return;
+    if (entry.pid == null || entry.isSystem) return;
     try {
       await killProcess(entry.pid, force);
       notify(
@@ -112,6 +125,21 @@ function App() {
     } catch (e) {
       notify("error", String(e));
     }
+  };
+
+  const onFreePort = async (port: number, targets: PortEntry[]) => {
+    const pids = [...new Set(targets.filter((t) => !t.isSystem && t.pid != null).map((t) => t.pid!))];
+    const failures: string[] = [];
+    for (const pid of pids) {
+      try {
+        await killProcess(pid, false);
+      } catch (e) {
+        failures.push(String(e));
+      }
+    }
+    if (failures.length) notify("error", failures.join("\n"));
+    else notify("ok", `Port ${port} freed (${pids.length} process${pids.length === 1 ? "" : "es"} terminated)`);
+    setTimeout(refresh, 300);
   };
 
   const onReveal = async (path: string) => {
@@ -156,6 +184,11 @@ function App() {
           ))}
         </div>
 
+        <label className="toggle" title="Show OS services and other users' processes">
+          <input type="checkbox" checked={showSystem} onChange={(e) => setShowSystem(e.target.checked)} />
+          System
+        </label>
+
         <label className="toggle">
           <input type="checkbox" checked={listeningOnly} onChange={(e) => setListeningOnly(e.target.checked)} />
           Listening only
@@ -180,6 +213,9 @@ function App() {
       </header>
 
       {error && <div className="banner error">{error}</div>}
+      {checkedPort != null && !loading && (
+        <PortStatus port={checkedPort} entries={occupiers(entries, checkedPort)} onFree={onFreePort} />
+      )}
 
       <main className="table-wrap">
         <table>
@@ -203,7 +239,7 @@ function App() {
           </tbody>
         </table>
 
-        {!loading && visible.length === 0 && (
+        {!loading && visible.length === 0 && checkedPort == null && (
           <div className="empty">{entries.length === 0 ? "No open ports found." : "Nothing matches your filters."}</div>
         )}
         {loading && <div className="empty">Scanning ports…</div>}
@@ -213,7 +249,7 @@ function App() {
         <span>
           {visible.length} of {entries.length} sockets
         </span>
-        <span className="muted">Rows without a process may belong to another user or the system.</span>
+        <span className="muted">System processes are protected. Search “:3000” to check if a port is free.</span>
       </footer>
 
       <div className="toasts">
@@ -254,13 +290,11 @@ function Row({
     }
   };
 
-  const address =
-    entry.remoteAddr != null
-      ? `${entry.localAddr} → ${entry.remoteAddr}:${entry.remotePort}`
-      : entry.localAddr;
+  const local = entry.localAddrs.join(" · ");
+  const address = entry.remoteAddr != null ? `${local} → ${entry.remoteAddr}:${entry.remotePort}` : local;
 
   return (
-    <tr>
+    <tr className={entry.isSystem ? "system" : ""}>
       <td className="num port">{entry.port}</td>
       <td>
         <span className={`badge ${entry.protocol.toLowerCase()}`}>{entry.protocol}</span>
@@ -271,6 +305,7 @@ function Row({
       <td className="state">{entry.state}</td>
       <td className="process" title={entry.command ?? entry.exePath ?? ""}>
         {entry.processName ?? <span className="muted">unknown</span>}
+        {entry.isSystem && <span className="tag">system</span>}
       </td>
       <td className="num mono">{entry.pid ?? "—"}</td>
       <td className="num">{formatBytes(entry.memory)}</td>
@@ -282,19 +317,79 @@ function Row({
               Reveal
             </button>
           )}
-          {entry.pid != null && (
-            <>
-              <button className={`danger ${confirming === "term" ? "confirm" : ""}`} onClick={() => click("term")} title="Send SIGTERM (graceful)">
-                {confirming === "term" ? "Sure?" : "Kill"}
-              </button>
-              <button className={`danger ghost ${confirming === "kill" ? "confirm" : ""}`} onClick={() => click("kill")} title="Send SIGKILL (force)">
-                {confirming === "kill" ? "Sure?" : "Force"}
-              </button>
-            </>
+          {entry.isSystem ? (
+            <span className="protected" title="System processes are protected">
+              🔒 protected
+            </span>
+          ) : (
+            entry.pid != null && (
+              <>
+                <button className={`danger ${confirming === "term" ? "confirm" : ""}`} onClick={() => click("term")} title="Send SIGTERM (graceful)">
+                  {confirming === "term" ? "Sure?" : "Kill"}
+                </button>
+                <button className={`danger ghost ${confirming === "kill" ? "confirm" : ""}`} onClick={() => click("kill")} title="Send SIGKILL (force)">
+                  {confirming === "kill" ? "Sure?" : "Force"}
+                </button>
+              </>
+            )
           )}
         </div>
       </td>
     </tr>
+  );
+}
+
+function PortStatus({
+  port,
+  entries,
+  onFree,
+}: {
+  port: number;
+  entries: PortEntry[];
+  onFree: (port: number, entries: PortEntry[]) => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => {
+    if (!confirming) return;
+    const id = setTimeout(() => setConfirming(false), 3000);
+    return () => clearTimeout(id);
+  }, [confirming]);
+
+  if (entries.length === 0) {
+    return (
+      <div className="port-status free">
+        <div>
+          <strong>✓ Port {port} is free.</strong>
+          <span>Nothing is listening on it.</span>
+        </div>
+      </div>
+    );
+  }
+
+  const names = [...new Set(entries.map((e) => `${e.processName ?? "unknown"}${e.pid ? ` (PID ${e.pid})` : ""}`))];
+  const killable = entries.some((e) => !e.isSystem && e.pid != null);
+  const hint = PORT_HINTS[port];
+
+  return (
+    <div className="port-status busy">
+      <div>
+        <strong>✗ Port {port} is in use</strong> by {names.join(", ")}.
+        {!killable && <div className="hint">{hint ?? "It belongs to a system process and can't be freed from here."}</div>}
+      </div>
+      {killable && (
+        <button
+          className={`danger ${confirming ? "confirm" : ""}`}
+          onClick={() => {
+            if (confirming) {
+              setConfirming(false);
+              onFree(port, entries);
+            } else setConfirming(true);
+          }}
+        >
+          {confirming ? "Sure?" : `Free port ${port}`}
+        </button>
+      )}
+    </div>
   );
 }
 
