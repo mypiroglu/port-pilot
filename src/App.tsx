@@ -161,7 +161,7 @@ function App() {
     <div className="app">
       <header className="toolbar">
         <div className="brand">
-          <span className="logo">⚓</span>
+          <img className="logo" src="/logo.svg" alt="" width={22} height={22} />
           <h1>PortPilot</h1>
         </div>
 
