@@ -169,7 +169,7 @@ function App() {
           ref={searchRef}
           className="search"
           type="search"
-          placeholder="Search port, process, PID…  (:3000, :8000-8999)"
+          placeholder="Port, process or PID…  (3000, 8000-8999, node)"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoFocus
@@ -249,7 +249,7 @@ function App() {
         <span>
           {visible.length} of {entries.length} sockets
         </span>
-        <span className="muted">System processes are protected. Search “:3000” to check if a port is free.</span>
+        <span className="muted">System processes are protected. Type a port number to check if it is free.</span>
       </footer>
 
       <div className="toasts">

@@ -6,24 +6,27 @@ export type ProtocolFilter = "ALL" | "TCP" | "UDP";
 
 /**
  * Search syntax:
- *   3000        → port, pid, name, address or command contains "3000"
- *   :3000       → exact port
- *   :3000-3999  → port range
- *   node        → process name / command contains "node"
+ *   3000        → exact port (or exact PID)
+ *   :3000       → exact port only
+ *   8000-8999   → port range (":8000-8999" also works)
+ *   node        → process name / address / command contains "node"
  * Multiple space-separated terms are AND-ed.
  */
 export function matchesQuery(entry: PortEntry, query: string): boolean {
   const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
   return terms.every((term) => {
-    const portMatch = term.match(/^:(\d+)(?:-(\d+))?$/);
-    if (portMatch) {
-      const from = Number(portMatch[1]);
-      const to = portMatch[2] ? Number(portMatch[2]) : from;
+    const range = term.match(/^:?(\d+)-(\d+)$/);
+    if (range) {
+      const [from, to] = [Number(range[1]), Number(range[2])];
       return entry.port >= Math.min(from, to) && entry.port <= Math.max(from, to);
     }
+    const exact = term.match(/^(:?)(\d+)$/);
+    if (exact) {
+      const n = Number(exact[2]);
+      // ":3000" is strictly a port; a bare number also matches a PID.
+      return entry.port === n || (exact[1] === "" && entry.pid === n);
+    }
     const haystack = [
-      entry.port,
-      entry.pid ?? "",
       entry.processName ?? "",
       ...entry.localAddrs,
       entry.remoteAddr ?? "",
@@ -78,9 +81,9 @@ export function formatBytes(bytes: number | null): string {
 export const rowKey = (e: PortEntry) =>
   `${e.protocol}|${e.port}|${e.state}|${e.remoteAddr}|${e.remotePort}|${e.pid}`;
 
-/** Returns the port number if the query is exactly ":<port>", otherwise null. */
+/** Returns the port number if the query is a single port ("3000" or ":3000"), otherwise null. */
 export function exactPortQuery(query: string): number | null {
-  const m = query.trim().match(/^:(\d{1,5})$/);
+  const m = query.trim().match(/^:?(\d{1,5})$/);
   if (!m) return null;
   const port = Number(m[1]);
   return port > 0 && port <= 65535 ? port : null;

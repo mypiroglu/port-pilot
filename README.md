@@ -11,8 +11,8 @@ No more `lsof -i :3000 | grep LISTEN` → copy PID → `kill -9`.
 
 - 📋 Lists every open TCP/UDP port with its owning process, PID, memory and CPU usage
 - 🔎 Instant search: process name, PID, address or command line
-  - `:3000` matches an exact port, `:8000-8999` matches a range, multiple terms are AND-ed
-- ✅ **Is this port free?** Type `:3000` to get an instant answer, and free it with one click
+  - `3000` matches that exact port (or PID), `8000-8999` matches a range, multiple terms are AND-ed
+- ✅ **Is this port free?** Type `3000` to get an instant answer, and free it with one click
 - 🛑 Graceful **Kill** (SIGTERM) or **Force** (SIGKILL) with an inline two-step confirm
 - 🔒 System services (e.g. `ControlCenter`, `rapportd`) are marked and protected from being killed
 - 🧹 Clean list: IPv4/IPv6 bindings of the same port are merged into one row
