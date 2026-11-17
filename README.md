@@ -9,13 +9,16 @@
 A tiny, fast, cross-platform port & process manager for developers.
 Built with [Tauri 2](https://tauri.app), Rust and React.
 
+[![Latest release](https://img.shields.io/github/v/release/mypiroglu/port-pilot?label=download&color=2ea44f)](https://github.com/mypiroglu/port-pilot/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/mypiroglu/port-pilot/total?color=2ea44f)](https://github.com/mypiroglu/port-pilot/releases)
+[![CI](https://github.com/mypiroglu/port-pilot/actions/workflows/ci.yml/badge.svg)](https://github.com/mypiroglu/port-pilot/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 ![Tauri](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white)
 ![Rust](https://img.shields.io/badge/Rust-backend-000000?logo=rust&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 
-[Download](../../releases) · [Features](#-features) · [Usage](#-usage) · [Build from source](#-build-from-source) · [Contributing](#-contributing)
+[**Download**](https://github.com/mypiroglu/port-pilot/releases/latest) · [Features](#-features) · [Usage](#-usage) · [Build from source](#-build-from-source) · [Contributing](#-contributing)
 
 <img src="docs/demo.gif" alt="PortPilot demo: checking port 3000, freeing it, inspecting a system port" width="900" />
 
@@ -66,7 +69,7 @@ It also tells you when a port is taken by an operating system service you should
 
 ## 📦 Installation
 
-Download the installer for your platform from the [**Releases**](../../releases) page:
+Download the installer for your platform from the [**latest release**](https://github.com/mypiroglu/port-pilot/releases/latest) page:
 
 | Platform | File |
 |---|---|
@@ -75,8 +78,8 @@ Download the installer for your platform from the [**Releases**](../../releases)
 | Windows | `PortPilot_x.y.z_x64-setup.exe` or `.msi` |
 | Linux | `.AppImage`, `.deb` or `.rpm` |
 
-> **macOS note:** builds are not notarized yet. If macOS says the app "can't be opened",
-> right-click the app and choose **Open**, or run:
+> **macOS note:** builds are not notarized yet. If macOS blocks the app on first launch, open
+> **System Settings → Privacy & Security** and click **Open Anyway**, or run:
 >
 > ```bash
 > xattr -dr com.apple.quarantine /Applications/PortPilot.app
@@ -164,8 +167,8 @@ flowchart LR
 ### Commands
 
 ```bash
-git clone https://github.com/<your-username>/portpilot.git
-cd portpilot
+git clone https://github.com/mypiroglu/port-pilot.git
+cd port-pilot
 npm install
 
 npm run tauri dev       # run with hot reload
@@ -202,15 +205,15 @@ portpilot/
 
 ### Releasing
 
-Pushing a version tag builds installers for macOS (Apple Silicon and Intel), Windows and Linux and attaches
-them to a **draft** GitHub release:
+The version lives in `package.json` (the Tauri config reads it from there). To publish a new version:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+npm version patch          # 0.1.0 → 0.1.1 (or: minor / major); creates a commit and a v0.1.1 tag
+git push --follow-tags     # pushing the tag starts the Release workflow
 ```
 
-Review the draft on the Releases page and publish it.
+GitHub Actions then builds installers for macOS (Apple Silicon and Intel), Windows and Linux
+and publishes them on the [Releases](https://github.com/mypiroglu/port-pilot/releases) page within ~15 minutes.
 
 ## ❓ FAQ
 
@@ -260,7 +263,7 @@ No. It makes no network requests. Everything is read locally from your operating
 - [ ] Group rows by process
 - [ ] Code signing and notarization for macOS
 
-Ideas and feedback are welcome in [Issues](../../issues).
+Ideas and feedback are welcome in [Issues](https://github.com/mypiroglu/port-pilot/issues).
 
 ## 🤝 Contributing
 

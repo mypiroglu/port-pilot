@@ -4,7 +4,7 @@ Thanks for your interest in improving PortPilot! Bug reports, ideas, docs and co
 
 ## Reporting bugs
 
-Open an [issue](../../issues) and include:
+Open an [issue](https://github.com/mypiroglu/port-pilot/issues) and include:
 
 - Your OS and version (e.g. macOS 15.1, Windows 11, Ubuntu 24.04)
 - PortPilot version
